@@ -35,23 +35,33 @@ require 'rubygems'
 require 'itree'
 
 tree = Intervals::Tree.new
-t.insert(0,100)
-t.insert(50,500)
+tree.insert(0, 100)
+tree.insert(50, 500)
 
-results = t.stab(5)
+# Query for a single point (5)
+results = tree.stab(5)
 results.length         # => 1
-results[0].scores      # => [0,100]
+results[0].scores      # => [0, 100]
 
-results = t.stab(55)
+# Query for a single point (55)
+results = tree.stab(55)
 results.length         # => 2
-results[0].scores      # => [0,100]
-results[1].scores      # => [50,500]
+results[0].scores      # => [0, 100]
+results[1].scores      # => [50, 500]
 
-results = t.stab(10,20)
+# Query for a range (10, 20)
+results = tree.stab(10, 20)
 results.length         # => 1
-results[0].scores      # => [0,100]
+results[0].scores      # => [0, 100]
 
-results = t.stab(10,200)
+# Query for a range (10, 200)
+results = tree.stab(10, 200)
+results.length         # => 2
+results[0].scores      # => [0, 100]
+results[1].scores      # => [50, 500]
+
+# Query for a range (600, 700) - no intersection
+results = tree.stab(600, 700)
 results.length         # => 0
 ```
 
