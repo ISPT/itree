@@ -364,24 +364,21 @@ module Intervals
 		end
 
 		def stabNode(node, minScore, maxScore, results)
-			if node.subRightMax &&
-				 minScore > node.subRightMax &&
-				 node.subLeftMax &&
-				 minScore > node.subLeftMax &&
-				 minScore > node.scores[1]
-				return
-			end
-			if node.left
+			# Skip this node and its subtrees if the query range is entirely to the right
+			return if node.subRightMax && minScore > node.subRightMax
+
+			# Traverse the left subtree if it might contain intersecting ranges
+			if node.left && minScore <= node.subLeftMax
 				stabNode(node.left, minScore, maxScore, results)
 			end
 
-			if minScore >= node.scores[0] && maxScore <= node.scores[1]
+			# Check if the current node intersects the query range
+			if node.scores[1] >= minScore && node.scores[0] <= maxScore
 				results << node.clone
 			end
 
-			return if maxScore < node.scores[0]
-
-			if node.right
+			# Traverse the right subtree if it might contain intersecting ranges
+			if node.right && maxScore >= node.scores[0]
 				stabNode(node.right, minScore, maxScore, results)
 			end
 		end

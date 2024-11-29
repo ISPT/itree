@@ -226,5 +226,11 @@ describe Intervals::Tree do
 			results = tree.stab(350).map{|n| n.scores }.sort{|a,b| a[0] <=> b[0]}
 			results[0].should eq [300,400]
 		end
+
+		it { tree.stab(350, 520).length.should eq 2 }
+		it "returns all intersected ranges" do
+			results = tree.stab(350,520).map{|n| n.scores }.sort{|a,b| a[0] <=> b[0]}
+			results.should eq [[300,400], [400,500]]
+		end
 	end
 end
