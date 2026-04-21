@@ -233,4 +233,19 @@ describe Intervals::Tree do
 			results.should eq [[300,400], [400,500]]
 		end
 	end
+
+	describe "#stab with a wide-spanning (catchall) interval" do
+		# Regression for a stabNode pruning bug: a wide interval living in the
+		# left subtree was skipped when an ancestor's subRightMax fell short of
+		# the query value, triggering a premature return.
+		it "finds the catchall when no narrower range covers the stab value" do
+			tree.insert(0, 1000, "catchall")
+			tree.insert(200, 299, "sub_range")
+			[[300, 309], [400, 409], [500, 509], [600, 609]].each { |lo, hi| tree.insert(lo, hi) }
+
+			# 750 is inside the catchall but past every narrow range's endpoint,
+			# so the buggy prune would bail out before visiting the catchall.
+			tree.stab(750).map(&:data).should eq ["catchall"]
+		end
+	end
 end
