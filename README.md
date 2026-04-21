@@ -28,7 +28,7 @@ t.insert(90,200,"this data is saved with the range")
 
 ### Querying
 
-A *stabbing query* returns an array of `Intervals::Node` ranges that fully contain the desired point or range.
+A *stabbing query* returns an array of `Intervals::Node` ranges that intersect the desired point or range.
 
 ```ruby
 require 'rubygems'
@@ -52,7 +52,9 @@ results.length         # => 1
 results[0].scores      # => [0,100]
 
 results = t.stab(10,200)
-results.length         # => 0
+results.length         # => 2
+results[0].scores      # => [0,100]
+results[1].scores      # => [50,500]
 ```
 
 ### Removal
