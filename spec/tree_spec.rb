@@ -24,12 +24,25 @@ describe Intervals::Tree do
 		end
 
 		context "inserting duplicates" do
-			before(:each) { tree.insert(0,10)}
+			before(:each) { tree.insert(0,10,"cheese") }
 
-			it { tree.insert(0,10,"taco").should_not be true}
-			it "does not increase tree size" do
+			it { tree.insert(0,10,"taco").should be true }
+			it "increases tree size" do
 				tree.insert(0,10,"taco")
-				tree.size.should_not eq 2
+				tree.size.should eq 2
+			end
+			it "accumulates data entries on the existing node" do
+				tree.insert(0,10,"taco")
+				tree.root.data_list.should eq ["cheese","taco"]
+			end
+			it "returns every data entry from stab" do
+				tree.insert(0,10,"taco")
+				tree.stab(5).map(&:data).should eq ["cheese","taco"]
+			end
+			it "does not create a new tree node" do
+				tree.insert(0,10,"taco")
+				tree.root.left.should be nil
+				tree.root.right.should be nil
 			end
 		end
 
@@ -177,6 +190,63 @@ describe Intervals::Tree do
 			it "returns a single range" do
 				results = tree.stab(350).map{|n| n.scores }.sort{|a,b| a[0] <=> b[0]}
 				results[0].should eq [300,400]
+			end
+		end
+
+		context "with a data argument" do
+			let(:bucket_tree) do
+				t = Intervals::Tree.new
+				t.insert(0,10,"a")
+				t.insert(0,10,"b")
+				t.insert(0,10,"c")
+				t
+			end
+
+			it "removes only the matching entry" do
+				bucket_tree.remove(0,10,"b").should be true
+				bucket_tree.stab(5).map(&:data).should eq ["a","c"]
+			end
+
+			it "decrements size by one" do
+				bucket_tree.remove(0,10,"b")
+				bucket_tree.size.should eq 2
+			end
+
+			it "returns false when the data entry is not present" do
+				bucket_tree.remove(0,10,"z").should be false
+				bucket_tree.size.should eq 3
+			end
+
+			it "returns false when the interval is not present" do
+				bucket_tree.remove(1,2,"a").should be false
+			end
+
+			it "falls through to structural removal when the last entry is removed" do
+				bucket_tree.remove(0,10,"a")
+				bucket_tree.remove(0,10,"b")
+				bucket_tree.remove(0,10,"c")
+				bucket_tree.size.should eq 0
+				bucket_tree.root.should be nil
+			end
+
+			it "keeps node.data pointing at the new first entry after removing the head" do
+				bucket_tree.remove(0,10,"a")
+				bucket_tree.root.data.should eq "b"
+			end
+		end
+
+		context "without a data argument on a bucketed interval" do
+			let(:bucket_tree) do
+				t = Intervals::Tree.new
+				t.insert(0,10,"a")
+				t.insert(0,10,"b")
+				t
+			end
+
+			it "drops the whole bucket" do
+				bucket_tree.remove(0,10).should be true
+				bucket_tree.size.should eq 0
+				bucket_tree.root.should be nil
 			end
 		end
 	end

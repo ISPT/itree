@@ -2,6 +2,11 @@ module Intervals
 	class Tree
 		attr_accessor :root, :size
 
+		# Sentinel used by #remove to distinguish "no data argument" from
+		# data == nil (nil is a valid stored value).
+		UNSET = Object.new.freeze
+		private_constant :UNSET
+
 		def initialize
 			@root = nil
 			@size = 0
@@ -32,20 +37,57 @@ module Intervals
 			results
 		end
 
-		def remove(leftScore, rightScore)
-			if @root
-				delNode = Node.new(leftScore,rightScore,nil)
-				height,removed = removeNode(@root,delNode)
+		def remove(leftScore, rightScore, data = UNSET)
+			return false if @root.nil?
+
+			target = findNode(leftScore, rightScore)
+			return false unless target
+
+			if data.equal?(UNSET)
+				bucketSize = target.data_list.length
+				delNode = Node.new(leftScore, rightScore, nil)
+				_, removed = removeNode(@root, delNode)
 				if removed
-					@size = @size - 1
+					@size -= bucketSize
 					@root = nil if @size == 0
 					return true
 				end
+				return false
 			end
-			return false
+
+			idx = target.data_list.index(data)
+			return false unless idx
+
+			if target.data_list.length == 1
+				delNode = Node.new(leftScore, rightScore, nil)
+				_, removed = removeNode(@root, delNode)
+				if removed
+					@size -= 1
+					@root = nil if @size == 0
+					return true
+				end
+				return false
+			end
+
+			target.data_list.delete_at(idx)
+			target.data = target.data_list.first if idx == 0
+			@size -= 1
+			true
 		end
 
 		private
+
+		def findNode(leftScore, rightScore)
+			search = Node.new(leftScore, rightScore, nil)
+			node = @root
+			while node
+				diff = node <=> search
+				return node if diff == 0
+				node = diff > 0 ? node.left : node.right
+			end
+			nil
+		end
+
 		def insertNode(locNode,insertNode,updateData=false)
 			diff = locNode <=> insertNode
 
@@ -134,8 +176,14 @@ module Intervals
 					return 0,success
 				end
 			else
-				locNode.data = insertNode.data if updateData
-				return 0,false
+				if updateData
+					locNode.data = insertNode.data
+					locNode.data_list = [insertNode.data]
+					return 0,false
+				else
+					locNode.data_list << insertNode.data
+					return 0,true
+				end
 			end
 		end
 
@@ -371,9 +419,15 @@ module Intervals
 				stabNode(node.left, minScore, maxScore, results)
 			end
 
-			# Check if the current node intersects the query range
+			# Check if the current node intersects the query range.
+			# Emit one clone per data entry so callers can do stab(x).map(&:data)
+			# and get every value that was inserted at this interval.
 			if node.scores[1] >= minScore && node.scores[0] <= maxScore
-				results << node.clone
+				node.data_list.each do |entry|
+					cloned = node.clone
+					cloned.data = entry
+					results << cloned
+				end
 			end
 
 			# Traverse the right subtree if it might contain intersecting ranges.
